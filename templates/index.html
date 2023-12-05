@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hand Gesture Volume Control</title>
+  </head>
+  <body>
+    <h1 style="text-align: center">Hand Gesture Volume Control System</h1>
+    <br />
+    <div
+      style="
+        width: 1000px;
+        margin: auto;
+        display: flex;
+        justify-content: space-around;
+      "
+    >
+      <div>
+        <img id="video_feed" width="640" height="480" />
+      </div>
+      <button
+        id="btn"
+        onmousemove="hover()"
+        onclick="recording()"
+        style="
+          background-color: red;
+          font-weight: bold;
+          color: aliceblue;
+          margin: auto;
+          width: 100px;
+          height: 100px;
+          border-radius: 100%;
+        "
+      >
+        <p id="recordingStatus">Press to Start/Stop Recording</p>
+      </button>
+    </div>
+
+    <script>
+      const video = document.getElementById("video_feed");
+      const btn = document.getElementById("btn");
+      video.src = "{{url_for('video_feed')}}";
+
+      function hover() {
+        btn.style.cursor = "pointer";
+      }
+
+      function recording() {
+        fetch("/flip_recording")
+          .then((res) => res.text())
+          .then((data) => {
+            document.getElementById("recordingStatus").innerText = data;
+          });
+      }
+    </script>
+  </body>
+</html>
