@@ -4,9 +4,10 @@ from mediapipe import solutions as mp
 import math
 import numpy as np
 from ctypes import cast, POINTER
-import comtypes
-from comtypes import CLSCTX_ALL
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+# import comtypes
+# from comtypes import CLSCTX_ALL
+# from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import subprocess
 
 app = Flask(__name__)
 
@@ -25,6 +26,11 @@ def record():
     else : 
         recording = True
         return 'Recording started'
+    
+def set_volume(vol):
+    """Set system volume using pactl."""
+    volume = int(vol)
+    subprocess.call(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{volume}%"])
 
 def model(img, hands, volume, minVol, maxVol):
 
@@ -48,7 +54,8 @@ def model(img, hands, volume, minVol, maxVol):
                 cv2.line(img, (x1,y1), (x2, y2), (255,0,255),3 )
                 length = math.hypot(x2-x1,y2-y1)
                 vol = np.interp(length,[50,150],[minVol,maxVol])
-                volume.SetMasterVolumeLevel(vol, None)
+                set_volume(vol)
+                # volume.SetMasterVolumeLevel(vol, None)
                 volBar = np.interp(length, [50,150], [400,150])
                 volPer = np.interp(length,[50,150],[0,100])
                 cv2.rectangle(img,(50,150),(85,400),(123,213,122),3)
@@ -58,14 +65,14 @@ def model(img, hands, volume, minVol, maxVol):
             #mp_drawing.draw_landmarks(img, hand, mp_hands.HAND_CONNECTIONS)
     
 def generate_frames():
-    comtypes.CoInitialize()
-    devices = AudioUtilities.GetSpeakers()
-    interface = devices.Activate(
-    IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
-    volume = cast(interface, POINTER(IAudioEndpointVolume))
-    volRange = volume.GetVolumeRange()
-    minVol = volRange[0]
-    maxVol = volRange[1]
+    # comtypes.CoInitialize()
+    # devices = AudioUtilities.GetSpeakers()
+    # interface = devices.Activate(
+    # IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
+    # volume = cast(interface, POINTER(IAudioEndpointVolume))
+    # volRange = volume.GetVolumeRange()
+    # minVol = volRange[0]
+    # maxVol = volRange[1]
     mp_drawing = mp.drawing_utils
     mp_hands = mp.hands
     hands = mp_hands.Hands()
@@ -79,7 +86,8 @@ def generate_frames():
         if not success :
             break
         img = cv2.flip(img, 1)
-        if(recording):   model(img, hands, volume, minVol, maxVol)
+        if(recording):   
+            model(img, hands)
 
         ret, buffer = cv2.imencode('.jpg', img)
         frame = buffer.tobytes()
