@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response
+from flask import Flask, jsonify, render_template, Response
 import cv2
 from mediapipe import solutions as mp
 import math
@@ -28,7 +28,7 @@ def set_volume(vol):
     volume = int(vol)
     subprocess.call(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{volume}%"])
 
-def model(img, hands, volume, minVol, maxVol):
+def model(img, hands, minVol, maxVol):
 
     results = hands.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
@@ -68,6 +68,33 @@ def find_available_camera():
             return index
     return -1
 
+def get_volume_range():
+    try:
+        # Use subprocess to execute commands
+        result = subprocess.run(['amixer', 'sget', 'Master'], capture_output=True, text=True)
+        
+        # Parse the output to find the volume range
+        output = result.stdout
+        
+        # Example parsing (adjust based on actual output format)
+        if 'Mono: Playback' in output:
+            # Example parsing for ALSA output
+            min_volume = output.split('Mono: Playback ')[1].split(' ')[0]
+            max_volume = output.split('Limits: Playback ')[1].split(' ')[0]
+            return jsonify({
+                'min_volume': min_volume,
+                'max_volume': max_volume
+            })
+        else:
+            return jsonify({
+                'error': 'Unable to parse volume information'
+            }), 500
+    
+    except Exception as e:
+        return jsonify({
+            'error': str(e)
+        }), 500
+
 def generate_frames():
     # comtypes.CoInitialize()
     # devices = AudioUtilities.GetSpeakers()
@@ -81,11 +108,15 @@ def generate_frames():
     mp_hands = mp.hands
     hands = mp_hands.Hands()
 
+    volume_range = get_volume_range()
+
     global recording
 
     camera_index = find_available_camera()
     if camera_index == -1:
         return "No available camera found.", 500
+    
+    print(camera_index)
 
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
@@ -98,18 +129,15 @@ def generate_frames():
             break
         img = cv2.flip(img, 1)
         if(recording):   
-            model(img, hands)
+            model(img, hands, volume_range['min_volume'], volume_range['max_volume'])
 
         ret, buffer = cv2.imencode('.jpg', img)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        
-
 
 @app.route('/video_feed')
 def video_feed():
-    
     return Response(generate_frames(), mimetype = 'multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
