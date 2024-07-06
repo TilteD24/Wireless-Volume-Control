@@ -3,10 +3,6 @@ import cv2
 from mediapipe import solutions as mp
 import math
 import numpy as np
-from ctypes import cast, POINTER
-# import comtypes
-# from comtypes import CLSCTX_ALL
-# from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import subprocess
 
 app = Flask(__name__)
@@ -64,6 +60,14 @@ def model(img, hands, volume, minVol, maxVol):
                 #print(length)
             #mp_drawing.draw_landmarks(img, hand, mp_hands.HAND_CONNECTIONS)
     
+def find_available_camera():
+    for index in range(10):
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            cap.release()
+            return index
+    return -1
+
 def generate_frames():
     # comtypes.CoInitialize()
     # devices = AudioUtilities.GetSpeakers()
@@ -79,7 +83,14 @@ def generate_frames():
 
     global recording
 
-    cap = cv2.VideoCapture(0)
+    camera_index = find_available_camera()
+    if camera_index == -1:
+        return "No available camera found.", 500
+
+    cap = cv2.VideoCapture(camera_index)
+    if not cap.isOpened():
+        print("Error: Could not open video device.")
+        return
 
     while True:
         success, img = cap.read()
@@ -94,8 +105,11 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         
+
+
 @app.route('/video_feed')
 def video_feed():
+    
     return Response(generate_frames(), mimetype = 'multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
