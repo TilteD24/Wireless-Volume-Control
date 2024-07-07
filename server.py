@@ -28,7 +28,7 @@ def set_volume(vol):
     volume = int(vol)
     subprocess.call(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{volume}%"])
 
-def model(img, hands, minVol, maxVol):
+def model(img, hands):
 
     results = hands.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
@@ -49,7 +49,7 @@ def model(img, hands, minVol, maxVol):
                 cv2.circle(img, (x2,y2), 10, (255,0,0), cv2.FILLED)
                 cv2.line(img, (x1,y1), (x2, y2), (255,0,255),3 )
                 length = math.hypot(x2-x1,y2-y1)
-                vol = np.interp(length,[50,150],[minVol,maxVol])
+                vol = np.interp(length,[50,150])
                 set_volume(vol)
                 # volume.SetMasterVolumeLevel(vol, None)
                 volBar = np.interp(length, [50,150], [400,150])
@@ -108,7 +108,7 @@ def generate_frames():
     mp_hands = mp.hands
     hands = mp_hands.Hands()
 
-    volume_range = get_volume_range()
+    # volume_range = get_volume_range()
 
     global recording
 
@@ -129,7 +129,7 @@ def generate_frames():
             break
         img = cv2.flip(img, 1)
         if(recording):   
-            model(img, hands, volume_range['min_volume'], volume_range['max_volume'])
+            model(img, hands)
 
         ret, buffer = cv2.imencode('.jpg', img)
         frame = buffer.tobytes()
