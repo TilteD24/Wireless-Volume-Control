@@ -1,5 +1,5 @@
 version: '1.0'
-name: wireless-volume-control
+name: my-flask-app
 services:
   app:
     build:
@@ -8,5 +8,6 @@ services:
         target: production
     environment:
       - OPENCV_SKIP_LOADEXT_MODULES=1
-    dependencies:
-      - libgl1-mesa-glx
+    apt:
+      packages:
+        - libgl1-mesa-glx
