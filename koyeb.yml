@@ -1,0 +1,12 @@
+version: '1.0'
+name: wireless-volume-control
+services:
+  app:
+    build:
+      context: .
+      docker:
+        target: production
+    environment:
+      - OPENCV_SKIP_LOADEXT_MODULES=1
+    dependencies:
+      - libgl1-mesa-glx
